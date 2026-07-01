@@ -14,8 +14,10 @@ venv/
 uv.lock
 
 # Generated local artifacts
+.playwright-cli/
 paper.txt
 summary.csv
+assets/*.png
 *.log
 
 # Source paper kept local unless intentionally added

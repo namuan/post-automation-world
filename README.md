@@ -4,6 +4,8 @@ An interactive 2D browser experiment inspired by arXiv `2606.20649v1`, "Simulati
 
 The project turns the paper's abstract economic model into a small living world. Households move between homes, factories, offices, markets, government, an AI data center, and a foreign owner. Time advances only after the user presses **Start**, and policy sliders let users see how taxes, UBI, automation, AI rent, public finances, and foreign ownership interact.
 
+![Post-Automation World running simulation](assets/post-automation-world.webp)
+
 ## Try It
 
 Open `index.html` or `post_automation_world.html` in a browser.
@@ -24,6 +26,7 @@ The GitHub Pages deployment serves the interactive simulation from the repositor
 
 - `index.html` - GitHub Pages entry point.
 - `post_automation_world.html` - Main interactive 2D simulation.
+- `assets/post-automation-world.webp` - Compressed screenshot used by this README.
 - `post_automation_sim.py` - Python/uv model script for numerical experiments.
 - `post-automation-simulation-concept.html` - Earlier visual concept explainer.
 

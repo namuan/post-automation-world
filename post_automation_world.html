@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post-Automation World Simulation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=Fragment+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5efe5;
+      --paper: #fffaf1;
+      --ink: #221b14;
+      --muted: #7a6d5f;
+      --line: rgba(34, 27, 20, 0.13);
+      --line-strong: rgba(34, 27, 20, 0.24);
+      --road: #d8cabb;
+      --water: #b9d6d0;
+      --home: #6d8f3d;
+      --labour: #4f8a2b;
+      --capital: #c15f25;
+      --state: #147c73;
+      --foreign: #a0183d;
+      --gold: #b88016;
+      --panel: rgba(255, 250, 241, 0.92);
+      --shadow: 0 18px 46px rgba(70, 51, 28, 0.16);
+      --font-display: "Bricolage Grotesque", ui-sans-serif, sans-serif;
+      --font-mono: "Fragment Mono", "SF Mono", Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 12% 10%, rgba(184, 128, 22, 0.13), transparent 38%),
+        radial-gradient(ellipse at 88% 4%, rgba(20, 124, 115, 0.13), transparent 34%),
+        linear-gradient(135deg, #f8f0e1, var(--bg));
+      font-family: var(--font-display);
+      overflow: hidden;
+    }
+
+    .app {
+      height: 100dvh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      grid-template-rows: 92px minmax(0, 1fr);
+    }
+
+    header {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: center;
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(245, 239, 229, 0.86);
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 46px);
+      line-height: 0.92;
+      letter-spacing: 0;
+      max-width: 860px;
+    }
+
+    .subtitle {
+      margin-top: 7px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .clock {
+      min-width: 240px;
+      border: 1px solid var(--line-strong);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      padding: 13px 16px;
+      border-radius: 8px;
+    }
+
+    .clock .label {
+      font-family: var(--font-mono);
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.1px;
+    }
+
+    .clock .year {
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1;
+      margin-top: 4px;
+    }
+
+    .world-wrap {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .legend {
+      position: absolute;
+      left: 18px;
+      bottom: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-width: calc(100% - 36px);
+      pointer-events: none;
+    }
+
+    .onboarding {
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      width: min(390px, calc(100% - 36px));
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 250, 241, 0.94);
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+      padding: 16px;
+      z-index: 5;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+
+    .onboarding[hidden] {
+      display: block;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-8px);
+    }
+
+    .onboarding-kicker {
+      font-family: var(--font-mono);
+      color: var(--gold);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      margin-bottom: 8px;
+    }
+
+    .onboarding h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      line-height: 1.05;
+    }
+
+    .onboarding p {
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .onboarding-actions {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    .step-count {
+      font-family: var(--font-mono);
+      color: var(--muted);
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .onboarding-actions button {
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 241, 0.86);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    aside {
+      min-height: 0;
+      overflow: auto;
+      border-left: 1px solid var(--line);
+      background: rgba(255, 250, 241, 0.74);
+      backdrop-filter: blur(12px);
+      padding: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 14px;
+    }
+
+    .panel.primary {
+      background: color-mix(in srgb, var(--paper) 82%, var(--gold) 18%);
+      border-color: color-mix(in srgb, var(--line) 55%, var(--gold) 45%);
+      box-shadow: 0 10px 30px rgba(70, 51, 28, 0.10);
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .panel-title span {
+      font-family: var(--font-mono);
+      font-weight: 400;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 800;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: transform 0.16s ease, background 0.16s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button.secondary {
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 241, 0.72);
+      border-radius: 8px;
+      padding: 11px;
+      min-width: 0;
+    }
+
+    .metric label {
+      display: block;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 5px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 23px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .control {
+      margin: 13px 0;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 7px;
+    }
+
+    .control label {
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .control output {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--state);
+    }
+
+    .timeline {
+      height: 16px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg,
+          var(--labour) 0 28%,
+          var(--capital) 28% 54%,
+          var(--foreign) 54% 100%);
+      overflow: hidden;
+      position: relative;
+      margin-top: 8px;
+    }
+
+    .timeline:after {
+      content: "";
+      position: absolute;
+      top: -4px;
+      left: calc(var(--progress) * 1%);
+      width: 3px;
+      height: 24px;
+      background: var(--ink);
+      transform: translateX(-50%);
+    }
+
+    .readout {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .event-log {
+      display: grid;
+      gap: 7px;
+      max-height: 160px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .event {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      line-height: 1.45;
+      color: var(--muted);
+      border-left: 2px solid var(--gold);
+      padding-left: 8px;
+    }
+
+    .field-guide {
+      display: grid;
+      gap: 8px;
+    }
+
+    .guide-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 250, 241, 0.70);
+      padding: 10px;
+    }
+
+    .guide-item strong {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .guide-item strong:before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--guide-color, var(--gold));
+    }
+
+    .guide-item p {
+      margin: 0;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 980px) {
+      body { overflow: auto; }
+      .app {
+        min-height: 100dvh;
+        height: auto;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 62dvh auto;
+      }
+      header {
+        grid-template-columns: 1fr;
+      }
+      .clock { min-width: 0; }
+      aside {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+      .buttons { grid-template-columns: 1fr 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Actors living inside a post-automation economy</h1>
+        <div class="subtitle">Watch households, robots, AI rent, taxes, and foreign ownership evolve as time passes.</div>
+      </div>
+      <div class="clock">
+        <div class="label">simulation time</div>
+        <div class="year" id="yearReadout">2026.0</div>
+        <div class="timeline" id="timeline" style="--progress:0"></div>
+      </div>
+    </header>
+
+    <div class="world-wrap">
+      <canvas id="world" aria-label="2D economy simulation canvas"></canvas>
+      <div class="onboarding" id="onboarding">
+        <div class="onboarding-kicker" id="tourKicker">Field note</div>
+        <h2 id="tourTitle">Read the world like a town map</h2>
+        <p id="tourBody">Each dot is an actor. Each district is an economic role. Time moves forward, actors commute, income flows, and policy changes redirect money.</p>
+        <div class="onboarding-actions">
+          <div class="step-count" id="tourCount">1 / 8</div>
+          <button class="secondary" id="tourSkip">Close</button>
+          <button id="tourNext">Next</button>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="pill" style="color:var(--labour)"><span class="dot"></span>households</div>
+        <div class="pill" style="color:var(--capital)"><span class="dot"></span>robots and capital</div>
+        <div class="pill" style="color:var(--state)"><span class="dot"></span>tax and public fund</div>
+        <div class="pill" style="color:var(--foreign)"><span class="dot"></span>AI rent offshore</div>
+        <div class="pill" style="color:var(--gold)"><span class="dot"></span>money flows</div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="panel primary">
+        <div class="panel-title">Run the world <span id="status">ready</span></div>
+        <div class="buttons">
+          <button id="playPause">Start</button>
+          <button class="secondary" id="reset">Reset</button>
+          <button class="secondary" id="startTour">Guide</button>
+        </div>
+        <div class="control">
+          <div class="control-row"><label for="speed">Time speed</label><output id="speedOut">1.0x</output></div>
+          <input id="speed" type="range" min="0.2" max="3" step="0.1" value="1">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Living indicators <span>world state</span></div>
+        <div class="metrics">
+          <div class="metric"><label>Labour share</label><strong id="labourShare">0%</strong></div>
+          <div class="metric"><label>Unemployed</label><strong id="unemployment">0%</strong></div>
+          <div class="metric"><label>AI rent leak</label><strong id="rentLeak">0%</strong></div>
+          <div class="metric"><label>Foreign owned</label><strong id="foreignOwned">0%</strong></div>
+          <div class="metric"><label>Gov fund</label><strong id="govFund">0.0x</strong></div>
+          <div class="metric"><label>Wealth Gini</label><strong id="gini">0.00</strong></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Policy controls <span>change while running</span></div>
+        <div class="control">
+          <div class="control-row"><label for="incomeTax">Income tax</label><output id="incomeTaxOut">18%</output></div>
+          <input id="incomeTax" type="range" min="0" max="0.5" step="0.01" value="0.18">
+        </div>
+        <div class="control">
+          <div class="control-row"><label for="wealthTax">Wealth tax</label><output id="wealthTaxOut">0.0%</output></div>
+          <input id="wealthTax" type="range" min="0" max="0.06" step="0.002" value="0">
+        </div>
+        <div class="control">
+          <div class="control-row"><label for="robotTax">Robot tax</label><output id="robotTaxOut">0%</output></div>
+          <input id="robotTax" type="range" min="0" max="0.35" step="0.01" value="0">
+        </div>
+        <div class="control">
+          <div class="control-row"><label for="aiLevy">AI value levy</label><output id="aiLevyOut">0%</output></div>
+          <input id="aiLevy" type="range" min="0" max="0.4" step="0.01" value="0">
+        </div>
+        <div class="control">
+          <div class="control-row"><label for="ubi">UBI / benefits</label><output id="ubiOut">4%</output></div>
+          <input id="ubi" type="range" min="0" max="0.22" step="0.01" value="0.04">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">What to watch <span>simple reading</span></div>
+        <div class="readout" id="readout">
+          Workers start at homes, commute to routine factories or offices, then consume and save. Robots and AI capacity grow over time. The crimson stream is AI rent leaving the country unless the AI value levy intercepts it.
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Field guide <span>entities</span></div>
+        <div class="field-guide">
+          <div class="guide-item" style="--guide-color:var(--labour)">
+            <strong>Households</strong>
+            <p>Green and blue people earn wages, consume at the market, save wealth, and can become unemployed as automation rises.</p>
+          </div>
+          <div class="guide-item" style="--guide-color:var(--capital)">
+            <strong>Robots and factories</strong>
+            <p>Orange squares and factory districts represent physical automation. Robot taxes collect from this local hardware income.</p>
+          </div>
+          <div class="guide-item" style="--guide-color:var(--foreign)">
+            <strong>AI rent and foreign owner</strong>
+            <p>The red stream is model/IP rent. If untaxed, it flows offshore and raises foreign ownership of the local capital stock.</p>
+          </div>
+          <div class="guide-item" style="--guide-color:var(--state)">
+            <strong>Government</strong>
+            <p>Teal flows are tax receipts. The public fund rises when taxes exceed transfers, and falls when benefits outrun the base.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Events <span>time passing</span></div>
+        <div class="event-log" id="events"></div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("world");
+    const ctx = canvas.getContext("2d");
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+
+    const ui = {
+      year: document.getElementById("yearReadout"),
+      timeline: document.getElementById("timeline"),
+      status: document.getElementById("status"),
+      playPause: document.getElementById("playPause"),
+      reset: document.getElementById("reset"),
+      startTour: document.getElementById("startTour"),
+      speed: document.getElementById("speed"),
+      speedOut: document.getElementById("speedOut"),
+      incomeTax: document.getElementById("incomeTax"),
+      wealthTax: document.getElementById("wealthTax"),
+      robotTax: document.getElementById("robotTax"),
+      aiLevy: document.getElementById("aiLevy"),
+      ubi: document.getElementById("ubi"),
+      incomeTaxOut: document.getElementById("incomeTaxOut"),
+      wealthTaxOut: document.getElementById("wealthTaxOut"),
+      robotTaxOut: document.getElementById("robotTaxOut"),
+      aiLevyOut: document.getElementById("aiLevyOut"),
+      ubiOut: document.getElementById("ubiOut"),
+      labourShare: document.getElementById("labourShare"),
+      unemployment: document.getElementById("unemployment"),
+      rentLeak: document.getElementById("rentLeak"),
+      foreignOwned: document.getElementById("foreignOwned"),
+      govFund: document.getElementById("govFund"),
+      gini: document.getElementById("gini"),
+      readout: document.getElementById("readout"),
+      events: document.getElementById("events"),
+      onboarding: document.getElementById("onboarding"),
+      tourKicker: document.getElementById("tourKicker"),
+      tourTitle: document.getElementById("tourTitle"),
+      tourBody: document.getElementById("tourBody"),
+      tourCount: document.getElementById("tourCount"),
+      tourSkip: document.getElementById("tourSkip"),
+      tourNext: document.getElementById("tourNext")
+    };
+
+    const colors = {
+      ink: "#221b14",
+      muted: "#7a6d5f",
+      paper: "#fffaf1",
+      road: "#d8cabb",
+      water: "#b9d6d0",
+      home: "#6d8f3d",
+      labour: "#4f8a2b",
+      cognitive: "#2f6f8f",
+      capital: "#c15f25",
+      state: "#147c73",
+      foreign: "#a0183d",
+      gold: "#b88016"
+    };
+
+    let world;
+    let last = performance.now();
+    let running = false;
+    let tourStep = 0;
+    let tourOpen = true;
+
+    const tourSteps = [
+      {
+        key: "home",
+        kicker: "Field note 1",
+        title: "Homes are the household sector",
+        body: "People start here. Their dot size and gold outline grow with wealth. When automation displaces them, they spend more time near homes and government instead of workplaces."
+      },
+      {
+        key: "factory",
+        kicker: "Field note 2",
+        title: "Factories pair workers with robots",
+        body: "Routine workers commute to the factory. Orange robot squares accumulate as the robot automation ramp rises. The robot tax only reaches this physical local channel."
+      },
+      {
+        key: "office",
+        kicker: "Field note 3",
+        title: "Offices are cognitive work",
+        body: "Blue-green workers represent higher-skill cognitive labour. The AI ramp hits this cluster later and faster, so office work changes sharply around the middle of the timeline."
+      },
+      {
+        key: "ai",
+        kicker: "Field note 4",
+        title: "The AI data center creates two things",
+        body: "Compute earns ordinary capital income, but the model and brand create IP rent. The simulation shows that rent as the red stream leaving the AI district."
+      },
+      {
+        key: "foreign",
+        kicker: "Field note 5",
+        title: "Foreign owner receives the rent",
+        body: "If the AI value levy is low, rent flows offshore and gets reinvested into claims on the domestic capital stock. Watch the Foreign owned metric climb."
+      },
+      {
+        key: "government",
+        kicker: "Field note 6",
+        title: "Government redirects flows",
+        body: "Income tax, robot tax, wealth tax, and AI levy send teal particles here. UBI and benefits send gold particles back to households."
+      },
+      {
+        key: "market",
+        kicker: "Field note 7",
+        title: "The market closes the loop",
+        body: "Workers consume, firms produce, and savings become capital claims. The model is simplified, but every visible flow changes the living indicators."
+      },
+      {
+        key: "controls",
+        kicker: "Field note 8",
+        title: "Now experiment with policy",
+        body: "Try raising AI value levy: the red offshore stream shrinks and public revenue improves. Try UBI without enough tax: unemployment pain softens, but the public fund can go negative."
+      }
+    ];
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function sigmoid(x) {
+      return 1 / (1 + Math.exp(-x));
+    }
+
+    function money(value) {
+      return Math.round(value).toLocaleString();
+    }
+
+    function pct(value) {
+      return `${Math.round(value * 100)}%`;
+    }
+
+    function gini(values) {
+      const arr = values.slice().sort((a, b) => a - b).map(v => Math.max(0, v));
+      const total = arr.reduce((a, b) => a + b, 0);
+      if (total <= 0) return 0;
+      const n = arr.length;
+      let weighted = 0;
+      for (let i = 0; i < n; i++) weighted += (i + 1) * arr[i];
+      return (2 * weighted) / (n * total) - (n + 1) / n;
+    }
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (world) world.layout(rect.width, rect.height);
+    }
+
+    class FlowParticle {
+      constructor(from, to, color, size, life, label) {
+        this.from = { ...from };
+        this.to = { ...to };
+        this.color = color;
+        this.size = size;
+        this.life = life;
+        this.age = 0;
+        this.label = label;
+        this.arc = (Math.random() - 0.5) * 70;
+      }
+
+      update(dt) {
+        this.age += dt;
+        return this.age < this.life;
+      }
+
+      draw(ctx) {
+        const t = clamp(this.age / this.life, 0, 1);
+        const ease = 1 - Math.pow(1 - t, 3);
+        const x = lerp(this.from.x, this.to.x, ease);
+        const y = lerp(this.from.y, this.to.y, ease) + Math.sin(Math.PI * ease) * this.arc;
+        ctx.globalAlpha = 1 - Math.max(0, t - 0.75) / 0.25;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(x, y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    class Actor {
+      constructor(id, role, x, y) {
+        this.id = id;
+        this.role = role;
+        this.x = x;
+        this.y = y;
+        this.tx = x;
+        this.ty = y;
+        this.wealth = 45 + Math.random() * 80;
+        this.skill = Math.random();
+        this.employed = true;
+        this.phase = Math.random();
+        this.radius = role === "robot" ? 6 : 4.6;
+      }
+
+      setTarget(point, jitter = 28) {
+        this.tx = point.x + (Math.random() - 0.5) * jitter;
+        this.ty = point.y + (Math.random() - 0.5) * jitter;
+      }
+
+      update(dt, world) {
+        this.phase += dt * 0.08;
+        const cycle = this.phase % 1;
+        if (this.role === "robot") {
+          this.setTarget(world.points.robotYard, 110);
+        } else if (!this.employed) {
+          this.setTarget(cycle < 0.72 ? world.points.home : world.points.government, 130);
+        } else if (this.skill > 0.55) {
+          this.setTarget(cycle < 0.48 ? world.points.office : cycle < 0.70 ? world.points.market : world.points.home, 95);
+        } else {
+          this.setTarget(cycle < 0.52 ? world.points.factory : cycle < 0.72 ? world.points.market : world.points.home, 115);
+        }
+
+        const speed = this.role === "robot" ? 52 : 76;
+        this.x += (this.tx - this.x) * clamp(dt * speed / 260, 0, 1);
+        this.y += (this.ty - this.y) * clamp(dt * speed / 260, 0, 1);
+      }
+
+      draw(ctx) {
+        const wealthTint = clamp((this.wealth - 40) / 260, 0, 1);
+        let color = this.role === "robot" ? colors.capital : this.skill > 0.55 ? colors.cognitive : colors.labour;
+        if (!this.employed && this.role !== "robot") color = "#9b8b79";
+        ctx.fillStyle = color;
+        ctx.strokeStyle = wealthTint > 0.72 ? colors.gold : "rgba(34,27,20,0.22)";
+        ctx.lineWidth = wealthTint > 0.72 ? 2 : 1;
+        ctx.beginPath();
+        if (this.role === "robot") {
+          ctx.rect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+        } else {
+          ctx.arc(this.x, this.y, this.radius + wealthTint * 2.5, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    class Simulation {
+      constructor() {
+        this.time = 0;
+        this.year = 2026;
+        this.width = 800;
+        this.height = 600;
+        this.actors = [];
+        this.flows = [];
+        this.events = [];
+        this.govFund = 0.2;
+        this.foreignOwned = 0.12;
+        this.output = 1000;
+        this.lastFlow = 0;
+        this.lastEventYear = 2026;
+        this.highlightKey = "home";
+        this.layout(this.width, this.height);
+        this.seedActors();
+      }
+
+      seedActors() {
+        this.actors = [];
+        for (let i = 0; i < 115; i++) {
+          const a = new Actor(i, "worker", this.points.home.x, this.points.home.y);
+          a.skill = Math.random();
+          a.wealth = 35 + Math.pow(Math.random(), 2.1) * 260;
+          this.actors.push(a);
+        }
+        for (let i = 0; i < 12; i++) {
+          this.actors.push(new Actor(200 + i, "robot", this.points.robotYard.x, this.points.robotYard.y));
+        }
+      }
+
+      layout(width, height) {
+        this.width = width;
+        this.height = height;
+        this.points = {
+          home: { x: width * 0.18, y: height * 0.64 },
+          factory: { x: width * 0.39, y: height * 0.46 },
+          robotYard: { x: width * 0.46, y: height * 0.70 },
+          office: { x: width * 0.61, y: height * 0.34 },
+          ai: { x: width * 0.74, y: height * 0.54 },
+          government: { x: width * 0.52, y: height * 0.18 },
+          market: { x: width * 0.31, y: height * 0.22 },
+          foreign: { x: width * 0.91, y: height * 0.53 }
+        };
+      }
+
+      controls() {
+        return {
+          incomeTax: Number(ui.incomeTax.value),
+          wealthTax: Number(ui.wealthTax.value),
+          robotTax: Number(ui.robotTax.value),
+          aiLevy: Number(ui.aiLevy.value),
+          ubi: Number(ui.ubi.value)
+        };
+      }
+
+      update(dt) {
+        const speed = Number(ui.speed.value);
+        const c = this.controls();
+        this.time += dt * speed * 0.75;
+        this.year = 2026 + this.time;
+
+        const robotAutomation = clamp(0.12 + 0.70 * sigmoid((this.year - 2034) / 4.2), 0, 0.88);
+        const aiAutomation = clamp(0.04 + 0.86 * sigmoid((this.year - 2040) / 2.8), 0, 0.94);
+        const automation = (robotAutomation + aiAutomation) / 2;
+
+        const labourBase = 0.70 - 0.38 * automation;
+        const taxDrag = c.aiLevy * 0.10 + c.robotTax * 0.04;
+        this.output = 980 * (1 + automation * 1.65) * (1 - taxDrag);
+        const robotIncome = this.output * (0.10 + robotAutomation * 0.17);
+        const aiRent = this.output * (0.03 + aiAutomation * 0.16) * (1 - c.aiLevy * 0.62);
+        const labourIncome = this.output * labourBase;
+        const stateTake = labourIncome * c.incomeTax + robotIncome * c.robotTax + aiRent * c.aiLevy;
+        const ubiCost = this.output * c.ubi;
+        const publicBalance = stateTake - ubiCost;
+
+        this.govFund = Math.max(-8, this.govFund + publicBalance / Math.max(1, this.output) * dt * speed * 0.16);
+        const reinvestedRent = aiRent * (1 - c.aiLevy) / Math.max(1, this.output);
+        this.foreignOwned = clamp(this.foreignOwned + (reinvestedRent * 0.060 - c.aiLevy * 0.018 - c.wealthTax * 0.012) * dt * speed, 0, 0.96);
+
+        const unemploymentRate = clamp((robotAutomation * 0.17 + aiAutomation * 0.26) * (1 - c.ubi * 1.3) - c.aiLevy * 0.025, 0, 0.52);
+        const sortedWorkers = this.actors.filter(a => a.role !== "robot").sort((a, b) => a.skill - b.skill);
+        const unemployedCount = Math.floor(sortedWorkers.length * unemploymentRate);
+        sortedWorkers.forEach((a, i) => {
+          a.employed = i >= unemployedCount;
+          const wage = a.employed ? labourIncome / Math.max(1, sortedWorkers.length - unemployedCount) : this.output * c.ubi / sortedWorkers.length;
+          const capitalBonus = a.wealth * (0.002 + automation * 0.004);
+          const taxes = wage * c.incomeTax + Math.max(0, a.wealth - 130) * c.wealthTax;
+          a.wealth = clamp(a.wealth + (wage + capitalBonus - taxes - 10) * dt * speed * 0.022, 2, 900);
+          if (c.wealthTax > 0.001 && a.wealth > 160) {
+            a.wealth *= 1 - c.wealthTax * dt * speed * 0.020;
+          }
+        });
+
+        const targetRobots = Math.floor(12 + robotAutomation * 52);
+        while (this.actors.filter(a => a.role === "robot").length < targetRobots) {
+          this.actors.push(new Actor(300 + this.actors.length, "robot", this.points.robotYard.x, this.points.robotYard.y));
+        }
+
+        this.actors.forEach(actor => actor.update(dt * speed, this));
+        this.flows = this.flows.filter(flow => flow.update(dt * speed));
+        this.spawnFlows(dt * speed, c, aiRent, stateTake, robotIncome, labourIncome);
+        this.addEvents(robotAutomation, aiAutomation, unemploymentRate, c);
+        this.renderMetrics({ labourIncome, aiRent, stateTake, unemploymentRate, automation });
+      }
+
+      spawnFlows(dt, c, aiRent, stateTake, robotIncome, labourIncome) {
+        this.lastFlow += dt;
+        if (this.lastFlow < 0.18) return;
+        this.lastFlow = 0;
+        this.flows.push(new FlowParticle(this.points.factory, this.points.home, colors.labour, 3.2, 1.5, "wages"));
+        this.flows.push(new FlowParticle(this.points.office, this.points.home, colors.labour, 3.2, 1.5, "wages"));
+        if (stateTake > 20) {
+          this.flows.push(new FlowParticle(this.points.home, this.points.government, colors.state, 3.0, 1.3, "tax"));
+          if (c.robotTax > 0.02) this.flows.push(new FlowParticle(this.points.robotYard, this.points.government, colors.state, 3.0, 1.35, "robot tax"));
+        }
+        if (aiRent > 20) {
+          const intercepted = c.aiLevy > 0.02;
+          this.flows.push(new FlowParticle(this.points.ai, intercepted ? this.points.government : this.points.foreign, intercepted ? colors.state : colors.foreign, 4.2, 1.7, "AI rent"));
+          if (intercepted && Math.random() > 0.45) {
+            this.flows.push(new FlowParticle(this.points.ai, this.points.foreign, colors.foreign, 2.4, 1.7, "remaining rent"));
+          }
+        }
+        if (c.ubi > 0.03 && Math.random() > 0.4) {
+          this.flows.push(new FlowParticle(this.points.government, this.points.home, colors.gold, 3.0, 1.4, "UBI"));
+        }
+      }
+
+      addEvents(robotAutomation, aiAutomation, unemploymentRate, c) {
+        const yearFloor = Math.floor(this.year);
+        if (yearFloor === this.lastEventYear) return;
+        this.lastEventYear = yearFloor;
+        let message = null;
+        if (yearFloor === 2034) message = "Industrial robots are now visible across routine production.";
+        if (yearFloor === 2040) message = "AI systems begin replacing cognitive tasks at scale.";
+        if (yearFloor === 2044 && c.aiLevy < 0.05) message = "AI licence fees have become the largest red offshore flow.";
+        if (unemploymentRate > 0.25 && Math.random() > 0.45) message = "Displaced workers spend more time near homes and government offices.";
+        if (this.foreignOwned > 0.55 && Math.random() > 0.55) message = "Foreign owners now claim more than half of domestic capital.";
+        if (this.govFund < -1 && Math.random() > 0.5) message = "The public fund is negative; transfers are outrunning the tax base.";
+        if (message) {
+          this.events.unshift({ year: yearFloor, message });
+          this.events = this.events.slice(0, 8);
+          ui.events.innerHTML = this.events.map(e => `<div class="event">${e.year}: ${e.message}</div>`).join("");
+        }
+      }
+
+      renderMetrics({ labourIncome, aiRent, stateTake, unemploymentRate, automation }) {
+        const wealthValues = this.actors.filter(a => a.role !== "robot").map(a => a.wealth);
+        ui.year.textContent = this.year.toFixed(1);
+        ui.timeline.style.setProperty("--progress", clamp((this.year - 2026) / 34 * 100, 0, 100));
+        ui.labourShare.textContent = pct(labourIncome / this.output);
+        ui.unemployment.textContent = pct(unemploymentRate);
+        ui.rentLeak.textContent = pct(aiRent / this.output);
+        ui.foreignOwned.textContent = pct(this.foreignOwned);
+        ui.govFund.textContent = `${this.govFund.toFixed(1)}x`;
+        ui.gini.textContent = gini(wealthValues).toFixed(2);
+        ui.readout.textContent = automation < 0.35
+          ? "Early phase: most people still commute to work. Robots are present but not dominant, and AI rent is a small stream."
+          : automation < 0.70
+            ? "Transition phase: robots and AI capacity expand. Watch workers split between workplaces, homes, and the government office."
+            : "Automated phase: the red AI rent stream and foreign ownership become the central story unless policy intercepts the value.";
+      }
+
+      draw() {
+        ctx.clearRect(0, 0, this.width, this.height);
+        this.drawMap();
+        this.drawHighlight();
+        this.drawFlows();
+        this.actors.forEach(actor => actor.draw(ctx));
+        this.drawLabels();
+      }
+
+      drawMap() {
+        const w = this.width;
+        const h = this.height;
+        ctx.fillStyle = "#efe4d3";
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.fillStyle = colors.water;
+        ctx.fillRect(w * 0.84, 0, w * 0.16, h);
+
+        ctx.strokeStyle = colors.road;
+        ctx.lineWidth = 22;
+        ctx.lineCap = "round";
+        const roads = [
+          [this.points.home, this.points.market, this.points.government],
+          [this.points.home, this.points.factory, this.points.robotYard],
+          [this.points.market, this.points.office, this.points.ai],
+          [this.points.ai, this.points.foreign]
+        ];
+        roads.forEach(points => {
+          ctx.beginPath();
+          points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+          ctx.stroke();
+        });
+
+        this.drawZone(this.points.home, 104, 76, "#dce7c8", "Homes");
+        this.drawZone(this.points.market, 86, 62, "#ead6ac", "Market");
+        this.drawZone(this.points.government, 98, 64, "#cbe7e2", "Government");
+        this.drawZone(this.points.factory, 112, 72, "#e9c2a8", "Factory");
+        this.drawZone(this.points.robotYard, 98, 62, "#e2b48e", "Robot yard");
+        this.drawZone(this.points.office, 112, 72, "#cddfed", "Offices");
+        this.drawZone(this.points.ai, 104, 74, "#e9c2ca", "AI data center");
+        this.drawZone(this.points.foreign, 86, 122, "#d8afbc", "Foreign owner");
+      }
+
+      drawZone(p, width, height, fill, label) {
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = "rgba(34,27,20,0.28)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(p.x - width / 2, p.y - height / 2, width, height, 10);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "rgba(34,27,20,0.68)";
+        ctx.font = "11px Fragment Mono";
+        ctx.textAlign = "center";
+        ctx.fillText(label, p.x, p.y - height / 2 - 8);
+      }
+
+      drawFlows() {
+        this.flows.forEach(flow => flow.draw(ctx));
+      }
+
+      drawLabels() {
+        ctx.textAlign = "left";
+        ctx.fillStyle = "rgba(34,27,20,0.76)";
+        ctx.font = "12px Fragment Mono";
+        ctx.fillText("routine work", this.points.factory.x - 52, this.points.factory.y + 58);
+        ctx.fillText("cognitive work", this.points.office.x - 56, this.points.office.y + 62);
+        ctx.fillText("AI rent exits", this.points.ai.x + 34, this.points.ai.y + 58);
+      }
+
+      drawHighlight() {
+        if (!tourOpen || !this.highlightKey || this.highlightKey === "controls") return;
+        const p = this.points[this.highlightKey];
+        if (!p) return;
+        const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 420);
+        ctx.save();
+        ctx.strokeStyle = colors.gold;
+        ctx.fillStyle = "rgba(184,128,22,0.10)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 64 + pulse * 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.setLineDash([7, 7]);
+        ctx.strokeStyle = "rgba(34,27,20,0.55)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 82 + pulse * 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function renderTour() {
+      const step = tourSteps[tourStep];
+      ui.onboarding.hidden = !tourOpen;
+      if (world) world.highlightKey = step.key;
+      ui.tourKicker.textContent = step.kicker;
+      ui.tourTitle.textContent = step.title;
+      ui.tourBody.textContent = step.body;
+      ui.tourCount.textContent = `${tourStep + 1} / ${tourSteps.length}`;
+      ui.tourNext.textContent = tourStep === tourSteps.length - 1 ? "Finish" : "Next";
+      ui.startTour.textContent = tourOpen ? "Hide" : "Guide";
+      document.body.dataset.tourTarget = step.key;
+    }
+
+    function nextTourStep() {
+      if (tourStep >= tourSteps.length - 1) {
+        tourOpen = false;
+      } else {
+        tourStep += 1;
+      }
+      renderTour();
+    }
+
+    function startTour() {
+      tourOpen = !tourOpen;
+      if (tourOpen && tourStep >= tourSteps.length - 1) tourStep = 0;
+      renderTour();
+    }
+
+    function syncControls() {
+      ui.speedOut.textContent = `${Number(ui.speed.value).toFixed(1)}x`;
+      ui.incomeTaxOut.textContent = pct(Number(ui.incomeTax.value));
+      ui.wealthTaxOut.textContent = `${(Number(ui.wealthTax.value) * 100).toFixed(1)}%`;
+      ui.robotTaxOut.textContent = pct(Number(ui.robotTax.value));
+      ui.aiLevyOut.textContent = pct(Number(ui.aiLevy.value));
+      ui.ubiOut.textContent = pct(Number(ui.ubi.value));
+    }
+
+    function resetWorld() {
+      world = new Simulation();
+      running = false;
+      ui.playPause.textContent = "Start";
+      ui.status.textContent = "ready";
+      resize();
+      ui.events.innerHTML = "";
+      world.events = [];
+      renderTour();
+    }
+
+    ui.playPause.addEventListener("click", () => {
+      running = !running;
+      ui.playPause.textContent = running ? "Pause" : world.time === 0 ? "Start" : "Resume";
+      ui.status.textContent = running ? "playing" : "paused";
+    });
+
+    ui.reset.addEventListener("click", resetWorld);
+    ui.startTour.addEventListener("click", startTour);
+    ui.tourNext.addEventListener("click", nextTourStep);
+    ui.tourSkip.addEventListener("click", () => {
+      tourOpen = false;
+      renderTour();
+    });
+    [ui.speed, ui.incomeTax, ui.wealthTax, ui.robotTax, ui.aiLevy, ui.ubi].forEach(input => {
+      input.addEventListener("input", syncControls);
+    });
+
+    function loop(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      if (running) world.update(dt);
+      world.draw();
+      requestAnimationFrame(loop);
+    }
+
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+        const r = Math.min(radius, width / 2, height / 2);
+        this.moveTo(x + r, y);
+        this.arcTo(x + width, y, x + width, y + height, r);
+        this.arcTo(x + width, y + height, x, y + height, r);
+        this.arcTo(x, y + height, x, y, r);
+        this.arcTo(x, y, x + width, y, r);
+      };
+    }
+
+    window.addEventListener("resize", resize);
+    syncControls();
+    resetWorld();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

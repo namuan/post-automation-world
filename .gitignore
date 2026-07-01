@@ -1,0 +1,22 @@
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# uv and local tooling
+.python-version
+uv.lock
+
+# Generated local artifacts
+paper.txt
+summary.csv
+*.log
+
+# Source paper kept local unless intentionally added
+2606.20649v1.pdf

@@ -43,7 +43,7 @@ Optional overrides:
 
 ```bash
 WAIT_MS=8000 QUALITY=82 ./scripts/capture_latest_screenshot.sh
-./scripts/capture_latest_screenshot.sh https://namuan.github.io/post-automation-world/ assets/post-automation-world.webp
+./scripts/capture_latest_screenshot.sh https://namuan.github.io/post-automation-world/post_automation_world.html assets/post-automation-world.webp
 ```
 
 ## Run The Python Model

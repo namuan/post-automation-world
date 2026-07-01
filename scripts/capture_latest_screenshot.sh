@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-URL="${1:-https://namuan.github.io/post-automation-world/}"
+URL="${1:-https://namuan.github.io/post-automation-world/post_automation_world.html}"
 OUTPUT="${2:-assets/post-automation-world.webp}"
 BROWSER="${BROWSER:-webkit}"
 WIDTH="${WIDTH:-1440}"
@@ -33,6 +33,15 @@ mkdir -p "$(dirname "$OUTPUT")" "$TMP_DIR"
 echo "Opening $URL"
 playwright-cli -s="$SESSION" open --browser "$BROWSER" "$URL" >/dev/null
 playwright-cli -s="$SESSION" resize "$WIDTH" "$HEIGHT" >/dev/null
+playwright-cli -s="$SESSION" eval "new Promise((resolve, reject) => {
+  const started = Date.now();
+  const tick = () => {
+    if (document.getElementById('playPause') && document.getElementById('tourSkip')) return resolve(true);
+    if (Date.now() - started > 10000) return reject(new Error('Simulation controls did not load'));
+    setTimeout(tick, 100);
+  };
+  tick();
+})" >/dev/null
 
 echo "Starting simulation and waiting ${WAIT_MS}ms"
 playwright-cli -s="$SESSION" eval "(() => {
@@ -43,6 +52,8 @@ playwright-cli -s="$SESSION" eval "(() => {
     el.dispatchEvent(new Event('input', { bubbles: true }));
   };
   document.getElementById('tourSkip')?.click();
+  const onboarding = document.getElementById('onboarding');
+  if (onboarding) onboarding.hidden = true;
   set('aiLevy', 0.14);
   set('robotTax', 0.12);
   set('ubi', 0.08);

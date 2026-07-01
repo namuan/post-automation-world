@@ -15,6 +15,7 @@ uv.lock
 
 # Generated local artifacts
 .playwright-cli/
+.screenshot-tmp/
 paper.txt
 summary.csv
 assets/*.png

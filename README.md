@@ -27,8 +27,24 @@ The GitHub Pages deployment serves the interactive simulation from the repositor
 - `index.html` - GitHub Pages entry point.
 - `post_automation_world.html` - Main interactive 2D simulation.
 - `assets/post-automation-world.webp` - Compressed screenshot used by this README.
+- `scripts/capture_latest_screenshot.sh` - Captures and compresses a fresh screenshot from GitHub Pages.
 - `post_automation_sim.py` - Python/uv model script for numerical experiments.
 - `post-automation-simulation-concept.html` - Earlier visual concept explainer.
+
+## Update The Screenshot
+
+The screenshot script uses the published GitHub Pages app, not a local server.
+
+```bash
+./scripts/capture_latest_screenshot.sh
+```
+
+Optional overrides:
+
+```bash
+WAIT_MS=8000 QUALITY=82 ./scripts/capture_latest_screenshot.sh
+./scripts/capture_latest_screenshot.sh https://namuan.github.io/post-automation-world/ assets/post-automation-world.webp
+```
 
 ## Run The Python Model
 
